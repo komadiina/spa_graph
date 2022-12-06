@@ -1,9 +1,0 @@
-{
-    "files.associations": {
-        "atomic": "cpp",
-        "cstdint": "cpp",
-        "tuple": "cpp",
-        "variant": "cpp",
-        "ostream": "cpp"
-    }
-}
