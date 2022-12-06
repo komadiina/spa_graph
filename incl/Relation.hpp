@@ -5,7 +5,8 @@
 #include <iostream>
 #include <variant>
 
-template <typename T, typename... Ts> std::ostream &operator<<(std::ostream &os, const std::variant<T, Ts...> &obj) {
+template <typename T, typename... Ts>
+std::ostream &operator<<(std::ostream &os, const std::variant<T, Ts...> &obj) {
 	std::visit([&os](auto &&arg) { os << arg << " "; }, obj);
 	return os << "\b.";
 }
@@ -20,9 +21,13 @@ template <typename Type, Arithmetic Weight> class Relation {
 		Weight m_Weight;
 
 	public:
-		Relation() { m_Weight = 0; }
+		Relation() {
+			m_From = Type();
+			m_Weight = 0;
+		}
 
-		Relation(const Type &from, const Type &to, const Weight &weight) : m_From(from), m_To(to), m_Weight(weight) {}
+		Relation(const Type &from, const Type &to, const Weight &weight)
+			: m_From(from), m_To(to), m_Weight(weight) {}
 
 		Relation(const Relation &other) {
 			m_From = other.m_From;
@@ -40,7 +45,8 @@ template <typename Type, Arithmetic Weight> class Relation {
 		}
 
 		/***
-		 * @brief Returns an element in the given tuple using function template specialization.
+		 * @brief Returns an element in the given tuple using function template
+		 * specialization.
 		 * @param <0> source node
 		 * @param <1> destination node
 		 * @param <2> weight between nodes
@@ -69,4 +75,8 @@ template <typename Type, Arithmetic Weight> class Relation {
 		const Type from() const { return m_From; }
 		const Type to() const { return m_To; }
 		const Weight weight() const { return m_Weight; }
+
+		friend std::ostream &operator<<(std::ostream &os, const Relation &obj) {
+			return os << obj.from() << " --- " << obj.weight() << " ---> " << obj.to();
+		}
 };

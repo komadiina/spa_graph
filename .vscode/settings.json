@@ -3,6 +3,7 @@
         "atomic": "cpp",
         "cstdint": "cpp",
         "tuple": "cpp",
-        "variant": "cpp"
+        "variant": "cpp",
+        "ostream": "cpp"
     }
 }

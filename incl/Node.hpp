@@ -16,7 +16,7 @@ template <typename T> class Node {
 
 	public:
 		Node() {
-			m_Data = T();
+			m_Data = T{};
 			m_Id = 0;
 			m_DegreeIn = m_DegreeOut = 0;
 		}
@@ -40,7 +40,7 @@ template <typename T> class Node {
 			m_DegreeIn = other.m_DegreeIn;
 			m_DegreeOut = other.m_DegreeOut;
 
-			other.m_Data = (T)NULL;
+			other.m_Data = T{};
 			other.m_Id = 0;
 			other.m_DegreeIn = 0;
 			other.m_DegreeOut = 0;
@@ -62,16 +62,20 @@ template <typename T> class Node {
 		void SetDegreeIn(const int32_t &degIn) { m_DegreeIn = degIn; }
 		void SetDegreeOut(const int32_t &degOut) { m_DegreeOut = degOut; }
 
-		friend std::ostream &operator<<(std::ostream &os, const Node &obj) { return os << obj.m_Data; }
+		friend std::ostream &operator<<(std::ostream &os, const Node &obj) {
+			return os << obj.m_Data;
+		}
 
-		bool operator==(const Node &other) const { return m_Data == other.GetData(); }
-		bool operator==(Node other) { return m_Data == other.GetData(); }
+		bool operator==(const Node &other) const {
+			return m_Data == other.m_Data || m_Id == other.m_Id;
+		}
+		bool operator==(Node other) { return m_Data == other.m_Data || m_Id == other.m_Id; }
 
 		bool operator!=(const Node &other) const { return m_Data != other.GetData(); }
 		bool operator!=(Node other) { return m_Data != other.GetData(); }
 
 		void erase() {
-			m_Data = 0;
+			m_Data = T{};
 			m_Id = 0;
 
 			m_DegreeIn = m_DegreeOut = 0;
@@ -90,6 +94,7 @@ template <typename T> class Node {
 template <typename T> class NodeHash {
 	public:
 		size_t operator()(const Node<T> &obj) const {
-			return (std::hash<uint8_t>()(obj.GetId()) ^ std::hash<uint8_t>()(obj.GetId()));
+			return (
+				std::hash<uint8_t>()(obj.GetId()) ^ std::hash<uint8_t>()(obj.GetId()));
 		}
 };

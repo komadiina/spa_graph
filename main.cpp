@@ -8,15 +8,34 @@
 #include "./incl/literals.hpp"
 
 int main(int argC, char **argV) {
-	using namespace std::string_literals;
-	std::string srbac = "Srbac";
-	std::string bl = "Banja Luka";
-	std::string bg = "Beograd";
+    using namespace std::string_literals;
+    using DataType = std::string;
+    using RelationType = Relation<Node<DataType>, NodeWeight>;
 
-	Graph<std::string> graph({{bl, 42}, {srbac, 44}, {bg, 15}});
+    int_fast32_t i = 1;
 
-	std::cout << "Graph nodes: " << graph << std::endl;
-	graph.TryConnect({Relation(Node<std::string>("Banja Luka"s, 42), Node<std::string>("Beograd"s, 15), 276.5)});
+    Node<DataType> srbac("Srbac"s, i++);
+    Node<DataType> banja_luka("Banja Luka"s, i++);
+    Node<DataType> beograd("Beograd"s, i++);
+    Node<DataType> bugojno("Bugojno"s, i++);
+    Node<DataType> novi_sad("Novi Sad"s, i++);
 
-	return EXIT_SUCCESS;
+    Graph<DataType> graph({srbac, banja_luka, beograd, bugojno, novi_sad});
+
+    std::cout << "Graph nodes: " << graph << std::endl;
+
+    std::vector<RelationType> relations({RelationType(srbac, banja_luka, 49.5),
+                                         RelationType(banja_luka, beograd, 275.1),
+                                         RelationType(bugojno, novi_sad, 102),
+                                         RelationType(banja_luka, novi_sad, 180.2)});
+
+    for (auto relation : relations)
+        graph.TryConnect({relation});
+    graph.PrintConnections();
+
+    graph.TryDisconnect(srbac, banja_luka);
+    graph.PrintConnections();
+
+    std::cout << "Done." << std::endl;
+    return EXIT_SUCCESS;
 }
