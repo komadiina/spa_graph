@@ -12,7 +12,6 @@
                 "main.exe",
                 "-I${cwd}\\incl",
                 "-std=c++23",
-                "-O3"
             ],
             "options": {
                 "cwd": "E:\\spa_graph\\"
@@ -35,7 +34,6 @@
                 "${fileDirname}\\${fileBasenameNoExtension}.exe",
                 "-I${cwd}\\incl",
                 "-std=c++23",
-                "-O3"
             ],
             "options": {
                 "cwd": "E:\\spa_graph\\"

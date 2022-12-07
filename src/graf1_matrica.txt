@@ -1,5 +1,18 @@
 12 // [1:n], 11 ako [0:n]
-ucenje, skola, student, racunar, podaci, ETF, knjiga, algoritam, udzbenik, tekst, proizvod, artikl, 
+ucenje, skola, student, racunar, podaci, ETF, knjiga, algoritam, udzbenik, tekst, proizvod, artikl
+1: ucenje
+2: skola
+3: student
+4: racunar
+5: podaci
+6: ETF
+7: knjiga
+8: algoritam
+9: udzbenik
+10: tekst
+11: proizvod
+12: artikl
+
     1 2    3   4    5    6   7    8    9    10 11   12
 1   0 0.18 0.2 0    0    0   0.1  0    0    0  0    0   
 2   0 0    0   0    0    0.4 0.15 0    0    0  0    0   

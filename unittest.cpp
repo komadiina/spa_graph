@@ -23,7 +23,7 @@ int main() {
     std::string line;
 
     const std::regex whitespace("\\s+");
-    std::string filename = "graf1.txt";
+    std::string filename = ".\\src\\graf1.txt";
     std::ifstream file(filename);
     file.seekg(std::ios::beg);
 

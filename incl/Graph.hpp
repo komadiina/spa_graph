@@ -8,6 +8,7 @@
 #include <fstream>
 #include <initializer_list>
 #include <list>
+#include <map>
 #include <regex>
 #include <unordered_map>
 #include <unordered_set>
@@ -33,10 +34,7 @@ template <typename T> class Graph {
         std::vector<std::string> m_NodeNames;
 
     public:
-        Graph() {
-            m_Nodes = std::unordered_set<Node<T>>();
-            m_Connectivity = std::unordered_map<Node<T>, NodeList, NodeHash<T>>();
-        }
+        Graph() {}
 
         // initialize a graph with specified nodes
         Graph(std::initializer_list<std::pair<T, uint8_t>> nodes) {
@@ -67,8 +65,7 @@ template <typename T> class Graph {
          * connected-component graph.
          * @param relations std::initializer_list type containing given relations
          */
-        void TryConnect(
-            std::initializer_list<const Relation<Node<T>, NodeWeight>> relations) {
+        void TryConnect(std::initializer_list<Relation<Node<T>, NodeWeight>> relations) {
             for (Relation<Node<T>, NodeWeight> relation : relations) {
                 try {
                     // auto src = relation.template get<0>();
@@ -100,14 +97,26 @@ template <typename T> class Graph {
          */
         void Connect(std::initializer_list<Relation<Node<T>, NodeWeight>> relations) {
             for (Relation<Node<T>, NodeWeight> relation : relations) {
-                auto src = relation.template get<0>();
-                auto dest = relation.template get<1>();
-                auto wt = relation.template get<2>();
+                Node<T> from = relation.from();
+                Node<T> to = relation.to();
+                NodeWeight wt = relation.weight();
 
-                m_Nodes.emplace(src);
-                m_Nodes.emplace(dest);
-                m_Connectivity[src].push_back({dest, wt});
+                m_Nodes.emplace(from);
+                m_Nodes.emplace(to);
+                m_Connectivity[from]; // ensures insertion
+                m_Connectivity.at(from).push_back(std::make_pair(to, wt));
             }
+        }
+
+        void Connect(Relation<Node<T>, NodeWeight> relation) {
+            Node<T> from = relation.from();
+            Node<T> to = relation.to();
+            NodeWeight wt = relation.weight();
+
+            m_Nodes.emplace(from);
+            m_Nodes.emplace(to);
+            m_Connectivity[from]; // ensures insertion
+            m_Connectivity.at(from).push_back(std::make_pair(to, wt));
         }
 
         void TryDisconnect(
@@ -160,16 +169,19 @@ template <typename T> class Graph {
 
         friend std::ostream &operator<<(std::ostream &os, const Graph<T> &obj) {
             std::unordered_set<Node<T>, NodeHash<T>> nodes = obj.GetNodes();
-            os << "{\n";
 
+            os << "-------\nNodes:\n";
             for (Node<T> node : nodes)
-                os << "  {\n    Node: " << node.GetData()
-                   << "\n    ID: " << (int)node.GetId() << "\n  },\n";
-            return os << "}.";
+                os << "{ ID: " << (int)node.GetId() << ", Name: " << node.GetData()
+                   << "}\n";
+
+            os << "\nDelta:\n";
+            obj.PrintConnections();
+
+            return os << "-------";
         }
 
         void PrintConnections() const {
-            std::cout << "-----" << std::endl;
 
             for (auto [dest, srcList] : m_Connectivity) {
                 if (srcList.empty()) {
@@ -184,10 +196,9 @@ template <typename T> class Graph {
                 std::cout << "\b\b }" << std::endl;
             }
 
-            std::cout << "-----" << std::endl;
         }
 
-        void LoadFromFile(const std::string &filename) {
+        void LoadFromFile(const std::string &filename = ".\\src\\graf1.txt") {
             // FILE FORMATTED AS:
             // node_count
             // node_names
@@ -196,11 +207,10 @@ template <typename T> class Graph {
             */
 
             uint32_t nodeCount;
-            std::vector<std::vector<double>> adjMatrix;
+            std::vector<std::vector<NodeWeight>> adjMatrix;
             std::string line;
 
             const std::regex whitespace("\\s+");
-            std::string filename = "graf1.txt";
             std::ifstream file(filename);
             file.seekg(std::ios::beg);
 
@@ -213,24 +223,52 @@ template <typename T> class Graph {
             line.pop_back(); // removes carriage return
             std::sregex_token_iterator iter(line.begin(), line.end(), whitespace, -1);
             std::sregex_token_iterator end;
-            std::vector<std::string> nodeNames(iter, end);
+            std::vector<T> nodeNames(iter, end);
             m_NodeNames = nodeNames;
             line.clear();
 
             while (std::getline(file, line, '\n')) {
-                line.pop_back(); // removes carriage return
-                adjMatrix.push_back(tokenize(line));
+                if (line[line.size()] == '\r')
+                    line.pop_back(); // removes carriage return
+
+                adjMatrix.push_back(tokenizeWeights(line));
                 line.clear();
             }
 
             m_AdjMatrix = adjMatrix;
 
             // initialize node hashset
-            int id = 0;
+            int id = 1, _ = 420;
             for (const auto &name : nodeNames)
-                m_Nodes.emplace(Node<std::string>(name, id++));
+                m_Nodes.emplace(Node<T>(name, id++));
 
             // initialize the relation hashmap
-            // OVDJE STAO
+            for (int i = 0; i < nodeCount; i++) {
+                Node<T> source(m_NodeNames.at(i), _);
+
+                for (int j = 0; j < nodeCount; j++) {
+                    NodeWeight wt = (adjMatrix.at(i)).at(j);
+                    Node<T> dest(m_NodeNames.at(j), _);
+
+                    if (wt) {
+                        Relation<Node<T>, NodeWeight> rel(source, dest, wt);
+                        Connect(rel);
+                    }
+                }
+            }
+        }
+
+    private:
+        std::vector<NodeWeight> tokenizeWeights(const std::string &feed,
+                                                char delim = ' ') {
+            std::stringstream ss(feed);
+            std::string token;
+
+            std::vector<NodeWeight> result;
+
+            while (std::getline(ss, token, delim))
+                result.push_back(std::stod(token));
+
+            return result;
         }
 };
