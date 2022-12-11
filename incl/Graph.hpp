@@ -34,6 +34,8 @@ template <typename T> class Graph {
         std::vector<std::vector<double>> m_AdjMatrix;
         std::vector<std::string> m_NodeNames;
 
+        std::unordered_map<Node<T>, bool, NodeHash<T>> m_Visited;
+
     public:
         Graph() {}
 
@@ -173,8 +175,7 @@ template <typename T> class Graph {
 
             os << "-------\nNodes:\n";
             for (Node<T> node : nodes)
-                os << "{ ID: " << (int)node.GetId() << ", Name: " << node.GetData()
-                   << "}\n";
+                os << "{ " << node.GetData() << " }\n";
 
             os << "\nDelta:\n";
             obj.PrintConnections();
@@ -261,30 +262,30 @@ template <typename T> class Graph {
 
         template <typename RType>
         void DFS(Node<T> start, const std::function<RType(Node<T>, int16_t)> &action) {
-            std::cout << "DFS traversal starting from node [" << start << "]:" << std::endl;
+            std::cout << "DFS traversal starting from node [" << start
+                      << "]:" << std::endl;
 
-            std::map<Node<T>, bool> visited;
             std::stack<Node<T>> st({start});
             uint16_t iteration = 1;
 
+            // refresh the visited-map and init with a new, false-filled one
+            m_Visited.clear();
             for (Node<T> node : m_Nodes)
-                visited[node] = false;
+                m_Visited[node] = false;
 
             while (st.size() > 0) {
-                Node<T> current(st.top());
+                Node<T> current = st.top();
                 st.pop();
 
-                if (visited[current] == false) {
+                if (m_Visited.at(current) == false) {
                     action(current, iteration++);
-                    visited[current] = true;
+                    m_Visited.at(current) = true;
 
-                    std::list<std::pair<Node<T>, NodeWeight>> neighbors =
-                        m_Connectivity.at(current);
-
-                    for (auto [neighbor, dist] : neighbors) {
-                        if (visited[neighbor] == false)
-                            st.push(neighbor);
-                    }
+                    std::unordered_set<Node<T>, NodeHash<T>> neighbors =
+                        neighborsOf(current);
+                    for (Node<T> w : neighbors)
+                        if (m_Visited.at(w) == false)
+                            st.push(w);
                 }
             }
         }
@@ -303,15 +304,15 @@ template <typename T> class Graph {
             return result;
         }
 
-        std::unordered_set<Node<T>> neighborsOf(Node<T> target) {
-            std::unordered_set<Node<T>> neighbors;
+        std::unordered_set<Node<T>, NodeHash<T>> neighborsOf(Node<T> target) {
+            std::unordered_set<Node<T>, NodeHash<T>> neighbors;
             std::list<std::pair<Node<T>, NodeWeight>> connectedNodes =
                 m_Connectivity[target];
 
             for (auto [node, wt] : connectedNodes)
                 neighbors.emplace(node);
 
-            return std::unordered_set<Node<T>>(neighbors);
+            return std::unordered_set<Node<T>, NodeHash<T>>(neighbors);
         }
 
         /* *** */
