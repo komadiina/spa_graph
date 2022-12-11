@@ -27,6 +27,12 @@ template <typename T> class Node {
             m_DegreeIn = m_DegreeOut = 0;
         }
 
+        Node(const T &data) {
+            m_Data = data;
+            m_Id = 0;
+            m_DegreeIn = m_DegreeOut = 0;
+        }
+
         Node(const Node &other) {
             m_Data = other.m_Data;
             m_Id = other.m_Id;
@@ -71,6 +77,15 @@ template <typename T> class Node {
 
         bool operator!=(const Node &other) const { return m_Data != other.m_Data; }
         bool operator!=(Node other) { return m_Data != other.m_Data; }
+
+        bool operator<(const Node &other) const { return m_Id < other.m_Id; }
+        bool operator<(Node other) { return m_Id < other.m_Id; }
+
+        bool operator<=(const Node &other) const { return m_Id <= other.m_Id; }
+        bool operator<=(Node other) { return m_Id <= other.m_Id; }
+
+        bool operator>(const Node &other) const { return !(m_Id < other.m_Id); }
+        bool operator>(const Node other) { return !(m_Id < other.m_Id); }
 
         void erase() {
             m_Data = T{};

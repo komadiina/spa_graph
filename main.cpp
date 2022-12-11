@@ -40,6 +40,10 @@ int main(int argC, char **argV) {
     graph.LoadFromFile();
     std::cout << "Graph contents:\n" << graph << std::endl;
 
-    std::cout << "Done." << std::endl;
+    graph.template DFS<void>(Node<DataType>("tekst"), [](Node<DataType> node, int16_t i) {
+        std::cout << "\t" << i << ": " << node << std::endl;
+    });
+
+    std::cout << "\nDone." << std::endl;
     return EXIT_SUCCESS;
 }

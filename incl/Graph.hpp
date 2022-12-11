@@ -10,6 +10,7 @@
 #include <list>
 #include <map>
 #include <regex>
+#include <stack>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -195,7 +196,6 @@ template <typename T> class Graph {
 
                 std::cout << "\b\b }" << std::endl;
             }
-
         }
 
         void LoadFromFile(const std::string &filename = ".\\src\\graf1.txt") {
@@ -249,10 +249,41 @@ template <typename T> class Graph {
                 for (int j = 0; j < nodeCount; j++) {
                     NodeWeight wt = (adjMatrix.at(i)).at(j);
                     Node<T> dest(m_NodeNames.at(j), _);
+                    m_Connectivity[source];
 
                     if (wt) {
                         Relation<Node<T>, NodeWeight> rel(source, dest, wt);
                         Connect(rel);
+                    }
+                }
+            }
+        }
+
+        template <typename RType>
+        void DFS(Node<T> start, const std::function<RType(Node<T>, int16_t)> &action) {
+            std::cout << "DFS traversal starting from node [" << start << "]:" << std::endl;
+
+            std::map<Node<T>, bool> visited;
+            std::stack<Node<T>> st({start});
+            uint16_t iteration = 1;
+
+            for (Node<T> node : m_Nodes)
+                visited[node] = false;
+
+            while (st.size() > 0) {
+                Node<T> current(st.top());
+                st.pop();
+
+                if (visited[current] == false) {
+                    action(current, iteration++);
+                    visited[current] = true;
+
+                    std::list<std::pair<Node<T>, NodeWeight>> neighbors =
+                        m_Connectivity.at(current);
+
+                    for (auto [neighbor, dist] : neighbors) {
+                        if (visited[neighbor] == false)
+                            st.push(neighbor);
                     }
                 }
             }
@@ -271,4 +302,17 @@ template <typename T> class Graph {
 
             return result;
         }
+
+        std::unordered_set<Node<T>> neighborsOf(Node<T> target) {
+            std::unordered_set<Node<T>> neighbors;
+            std::list<std::pair<Node<T>, NodeWeight>> connectedNodes =
+                m_Connectivity[target];
+
+            for (auto [node, wt] : connectedNodes)
+                neighbors.emplace(node);
+
+            return std::unordered_set<Node<T>>(neighbors);
+        }
+
+        /* *** */
 };
