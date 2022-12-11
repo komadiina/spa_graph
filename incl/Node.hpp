@@ -13,8 +13,6 @@ template <typename T> class Node {
     public:
         Node() { m_Data = T{}; }
 
-        Node(const T &data, const uint8_t &id) { m_Data = data; }
-
         Node(const T &data) { m_Data = data; }
 
         Node(const Node &other) { m_Data = other.m_Data; }

@@ -61,6 +61,9 @@ template <typename T> class Graph {
         const size_t NodeCount() const { return m_Nodes.size(); }
         size_t NodeCount() { return m_Nodes.size(); }
 
+        const auto Matrix() const { return m_adjMatrix; }
+        auto &Matrix() { return m_adjMatrix; }
+
         /**
          * @brief Insert multiple nodes into the graph and connect them, given the
          * weights. If a given node is not found in the map as a key, logs to the console
@@ -239,18 +242,19 @@ template <typename T> class Graph {
             m_AdjMatrix = adjMatrix;
 
             // initialize node hashset
-            int id = 1, _ = 420;
-            for (const auto &name : nodeNames)
-                m_Nodes.emplace(Node<T>(name, id++));
+            for (const auto &name : nodeNames) {
+                Node<T> node(name);
+                m_Nodes.emplace(node);
+                m_Connectivity[node];
+            }
 
             // initialize the relation hashmap
             for (int i = 0; i < nodeCount; i++) {
-                Node<T> source(m_NodeNames.at(i), _);
+                Node<T> source(m_NodeNames.at(i));
 
                 for (int j = 0; j < nodeCount; j++) {
                     NodeWeight wt = (adjMatrix.at(i)).at(j);
-                    Node<T> dest(m_NodeNames.at(j), _);
-                    m_Connectivity[source];
+                    Node<T> dest(m_NodeNames.at(j));
 
                     if (wt) {
                         Relation<Node<T>, NodeWeight> rel(source, dest, wt);

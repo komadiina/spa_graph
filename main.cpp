@@ -1,3 +1,4 @@
+#include <fstream>
 #include <iostream>
 
 // g++ main.cpp -o main -g -Iincl/ -std=c++20
@@ -40,7 +41,12 @@ int main(int argC, char **argV) {
     graph.LoadFromFile();
     std::cout << "Graph contents:\n" << graph << std::endl;
 
-    graph.template DFS<void>(Node<DataType>("tekst"), [](Node<DataType> node, int16_t i) {
+    std::cout << "Select a node target for DFS traversal: ";
+    DataType sel;
+    std::cin >> sel;
+    std::cin.ignore(1);
+
+    graph.template DFS<void>(Node<DataType>(sel), [](Node<DataType> node, int16_t i) {
         std::cout << "\t" << i << ": " << node << std::endl;
     });
 
