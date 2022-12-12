@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Matrix.hpp"
 #include "Node.hpp"
 #include "Relation.hpp"
 #include "literals.hpp"
@@ -15,12 +16,6 @@
 #include <unordered_set>
 #include <vector>
 
-/**
- * @brief A user-defined directed graph class, implementing a hashset for node and a
- * hashmap with Node<T>-std::list key-values.
- *
- * @tparam T Specifies a template for the type of contained data within the nodes.
- */
 template <typename T> class Graph {
     private:
         using NodeList = std::list<std::pair<Node<T>, NodeWeight>>;
@@ -30,11 +25,10 @@ template <typename T> class Graph {
         std::unordered_map<Node<T>, NodeList, NodeHash<T>> m_Connectivity;
         NodeWeight m_TotalWeight = 0.0;
 
-        /* used for initializing the relation map */
-        std::vector<std::vector<double>> m_AdjMatrix;
+        Matrix<NodeWeight> m_AdjMatrix;
         std::vector<std::string> m_NodeNames;
-
         std::unordered_map<Node<T>, bool, NodeHash<T>> m_Visited;
+        std::vector<Relation<Node<T>, NodeWeight>> m_Vertexes;
 
     public:
         Graph() {}
@@ -61,16 +55,9 @@ template <typename T> class Graph {
         const size_t NodeCount() const { return m_Nodes.size(); }
         size_t NodeCount() { return m_Nodes.size(); }
 
-        const auto Matrix() const { return m_adjMatrix; }
-        auto &Matrix() { return m_adjMatrix; }
+        const auto Matrix() const { return m_AdjMatrix; }
+        auto &Matrix() { return m_AdjMatrix; }
 
-        /**
-         * @brief Insert multiple nodes into the graph and connect them, given the
-         * weights. If a given node is not found in the map as a key, logs to the console
-         * and continues execution, skipping given (source) node. Guarantees a single
-         * connected-component graph.
-         * @param relations std::initializer_list type containing given relations
-         */
         void TryConnect(std::initializer_list<Relation<Node<T>, NodeWeight>> relations) {
             for (Relation<Node<T>, NodeWeight> relation : relations) {
                 try {
@@ -95,12 +82,6 @@ template <typename T> class Graph {
             }
         }
 
-        /**
-         * @brief Forces the insertion of given nodes into hashset and hashmap. As a
-         * result, the given node will always be contained in the graph. Does not
-         * guarantee a single connected-component graph.
-         * @param relations std::initializer_list type containing given relations
-         */
         void Connect(std::initializer_list<Relation<Node<T>, NodeWeight>> relations) {
             for (Relation<Node<T>, NodeWeight> relation : relations) {
                 Node<T> from = relation.from();
@@ -181,24 +162,29 @@ template <typename T> class Graph {
                 os << "{ " << node.GetData() << " }\n";
 
             os << "\nDelta:\n";
-            obj.PrintConnections();
+            obj.PrintConnections(os);
 
             return os << "-------";
         }
 
-        void PrintConnections() const {
+        void PrintConnections(std::ostream &os) const {
+            size_t max = 0;
+            for (const std::string &name : m_NodeNames)
+                if (name.length() > max)
+                    max = name.length();
 
             for (auto [dest, srcList] : m_Connectivity) {
                 if (srcList.empty()) {
-                    std::cout << "[X] " << dest << " does not connect to any node.\n";
+                    os << "[X] " << std::setw(max - 3) << dest
+                       << " does not connect to any node.\n";
                     continue;
                 }
 
-                std::cout << dest << " -> { ";
+                os << std::setw(max) << dest << " -> { ";
                 for (const std::pair<Node<T>, NodeWeight> &src : srcList)
-                    std::cout << src.first << ": " << src.second << ", ";
+                    os << src.first << ": " << src.second << ", ";
 
-                std::cout << "\b\b }" << std::endl;
+                os << "\b\b }" << std::endl;
             }
         }
 
@@ -266,6 +252,12 @@ template <typename T> class Graph {
 
         template <typename RType>
         void DFS(Node<T> start, const std::function<RType(Node<T>, int16_t)> &action) {
+            if (m_Nodes.find(start) == m_Nodes.end()) {
+                std::cout << "[!] Node \"" << start
+                          << "\" not found in graph - returning..." << std::endl;
+                return;
+            }
+
             std::cout << "DFS traversal starting from node [" << start
                       << "]:" << std::endl;
 
@@ -293,6 +285,8 @@ template <typename T> class Graph {
                 }
             }
         }
+
+        std::unordered_set<Node<T>, NodeHash<T>> Dijkstra(Node<T> source) {}
 
     private:
         std::vector<NodeWeight> tokenizeWeights(const std::string &feed,

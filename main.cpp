@@ -41,15 +41,22 @@ int main(int argC, char **argV) {
     graph.LoadFromFile();
     std::cout << "Graph contents:\n" << graph << std::endl;
 
+    std::cout << "Adjacency matrix:\n" << graph.Matrix() << std::endl;
+
     std::cout << "Select a node target for DFS traversal: ";
     DataType sel;
     std::cin >> sel;
-    std::cin.ignore(1);
-
+    std::cin.ignore(1); // newline
     graph.template DFS<void>(Node<DataType>(sel), [](Node<DataType> node, int16_t i) {
         std::cout << "\t" << i << ": " << node << std::endl;
     });
 
-    std::cout << "\nDone." << std::endl;
+    std::cout << "Select a node target for similarity calculation: ";
+    std::cin >> sel;
+    std::cin.ignore(1); // newline
+    
+
+
+    std::cout << "Done." << std::endl;
     return EXIT_SUCCESS;
 }

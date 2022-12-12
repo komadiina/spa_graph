@@ -1,12 +1,14 @@
 #pragma once
 
+#include <iomanip>
 #include <iostream>
+#include <stdexcept>
 #include <vector>
 
 #include "literals.hpp"
 
 /**
- * @brief A primitve matrix class, does not implement bound checking.
+ * @brief A primitve square matrix class, does not implement bound checking.
  *
  * @tparam T contained element data type
  */
@@ -29,6 +31,18 @@ template <typename T> class Matrix {
                 m_Matrix.push_back(row);
             }
         }
+        Matrix(T value, size_t dim) {
+            for (size_t i = 0; i < dim; i++)
+                m_Matrix.push_back(std::vector<T>(dim, value));
+        }
+
+        Matrix &operator=(const std::vector<std::vector<T>> &other) {
+            m_Matrix = other;
+            return *this;
+        }
+
+        Matrix &operator=(const std::vector<std::vector<T>> &other) const = delete;
+        Matrix &operator=(std::vector<std::vector<T>> other) const = delete;
 
         std::vector<std::vector<T>> &get() { return m_Matrix; }
         const std::vector<std::vector<T>> &get() const { return m_Matrix; }
@@ -54,24 +68,38 @@ template <typename T> class Matrix {
             return m_Matrix.at(idx);
         }
 
+        // https://stackoverflow.com/a/6969904
         class Proxy {
             private:
                 std::vector<T> &_arr;
 
             public:
                 Proxy(std::vector<T> &arr) : _arr(arr) {}
-                T &operator[](size_t idx) { return _arr[idx]; }
+                T &operator[](size_t idx) {
+                    if (idx <= _arr.size())
+                        return _arr[idx];
+
+                    else
+                        throw(std::out_of_range(std::to_string(idx)));
+                }
         };
 
         std::vector<T> &At(size_t idx) { return m_Matrix.at(idx); }
         const std::vector<T> &At(size_t idx) const { return m_Matrix.at(idx); }
 
-        Proxy operator[](int idx) { return Proxy(m_Matrix.at(idx)); }
+        Proxy operator[](int idx) {
+            try {
+                return Proxy(m_Matrix.at(idx));
+            } catch (const std::out_of_range &e) {
+                std::cout << e.what() << std::endl;
+                std::exit(EXIT_FAILURE);
+            }
+        }
 
         friend std::ostream &operator<<(std::ostream &os, const Matrix &obj) {
             for (const auto &row : obj.get()) {
                 for (const T &elem : row)
-                    os << elem << " ";
+                    os << std::setw(5) << std::left << elem << " ";
 
                 os << std::endl;
             }
