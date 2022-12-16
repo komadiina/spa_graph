@@ -53,6 +53,11 @@ template <typename T> class Matrix {
         size_t numCols() { return m_Matrix.at(0).size(); }
 
         void AppendRow(std::vector<T> row) { m_Matrix.push_back(row); }
+        void Fill(const T &value) {
+            for (std::vector<T> &row : m_Matrix)
+                for (T &element : row)
+                    element = value;
+        }
 
         std::vector<T> &operator[](size_t idx) {
             if (idx > m_Matrix.size())

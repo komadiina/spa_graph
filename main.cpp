@@ -41,7 +41,7 @@ int main(int argC, char **argV) {
     graph.LoadFromFile();
     std::cout << "Graph contents:\n" << graph << std::endl;
 
-    std::cout << "Adjacency matrix:\n" << graph.Matrix() << std::endl;
+    std::cout << "Adjacency matrix:\n" << graph.GetMatrix() << std::endl;
 
     std::cout << "Select a node target for DFS traversal: ";
     DataType sel;
