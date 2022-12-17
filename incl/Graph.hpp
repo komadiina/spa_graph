@@ -6,12 +6,16 @@
 #include "literals.hpp"
 
 #include <algorithm>
+#include <climits>
 #include <fstream>
 #include <initializer_list>
+#include <limits>
 #include <list>
 #include <map>
+#include <numeric>
 #include <queue>
 #include <regex>
+#include <set>
 #include <stack>
 #include <unordered_map>
 #include <unordered_set>
@@ -31,6 +35,9 @@ template <typename T> class Graph {
         std::vector<std::string> m_NodeNames;
         std::unordered_map<Node<T>, bool, NodeHash<T>> m_Visited;
         std::vector<std::pair<Node<T>, int32_t>> m_Indices;
+        std::unordered_map<Node<T>, NodeList, NodeHash<T>> m_EdgeDistances;
+
+        bool m_edges_initialized = false;
 
     public:
         Graph() {}
@@ -76,6 +83,8 @@ template <typename T> class Graph {
                     m_Nodes.emplace(dest);
                     m_Connectivity[src].push_back({dest, wt});
 
+                    m_edges_initialized = false;
+
                 } catch (const std::out_of_range &) {
                     std::cout << "Node " << relation.template get<0>()
                               << " not found in map.\n";
@@ -94,6 +103,8 @@ template <typename T> class Graph {
                 m_Nodes.emplace(to);
                 m_Connectivity[from]; // ensures insertion
                 m_Connectivity.at(from).push_back(std::make_pair(to, wt));
+
+                m_edges_initialized = false;
             }
         }
 
@@ -106,6 +117,8 @@ template <typename T> class Graph {
             m_Nodes.emplace(to);
             m_Connectivity[from]; // ensures insertion
             m_Connectivity.at(from).push_back(std::make_pair(to, wt));
+
+            m_edges_initialized = false;
         }
 
         void TryDisconnect(
@@ -121,6 +134,8 @@ template <typename T> class Graph {
                         [&value](std::pair<Node<T>, NodeWeight> elem) {
                             return elem == value;
                         });
+
+                    m_edges_initialized = false;
                 } catch (const std::out_of_range &) {
                     std::cout << "Node not in map. (" << key << ")\n";
                     continue;
@@ -138,6 +153,8 @@ template <typename T> class Graph {
                     [&value](std::pair<Node<T>, NodeWeight> elem) {
                         return elem == value;
                     });
+
+                m_edges_initialized = false;
             } catch (const std::out_of_range &) {
                 std::cout << "Node not in map. (" << key << ")\n";
                 return;
@@ -150,6 +167,8 @@ template <typename T> class Graph {
                     [&target](std::pair<Node<T>, NodeWeight> elem) {
                         return elem.first == target;
                     });
+
+                m_edges_initialized = false;
             } catch (const std::out_of_range &) {
                 std::cout << "Node not in map. (" << key << ")\n";
                 return;
@@ -190,13 +209,14 @@ template <typename T> class Graph {
             }
         }
 
-        void LoadFromFile(const std::string &filename = ".\\src\\graf1.txt") {
+        void LoadFromFile(const std::string &filename = ".\\src\\graf2.txt") {
             // FILE FORMATTED AS:
             // node_count
             // node_names
             /*
                 [adjacency matrix]
             */
+            m_edges_initialized = false;
 
             uint32_t nodeCount;
             std::vector<std::vector<NodeWeight>> adjMatrix;
@@ -250,6 +270,8 @@ template <typename T> class Graph {
                     }
                 }
             }
+
+            init_edge_distances();
         }
 
         template <typename RType>
@@ -288,91 +310,174 @@ template <typename T> class Graph {
             }
         }
 
-        std::unordered_set<Node<T>, NodeHash<T>> GetClosest(Node<T> target) {
-            return Dijkstra(target);
+        std::vector<std::pair<Node<T>, NodeWeight>> GetClosest(Node<T> target,
+                                                               int16_t limit = 5) {
+            std::unordered_map<Node<T>, NodeWeight, NodeHash<T>> spt = Dijkstra(target);
+
+            std::vector<std::pair<Node<T>, NodeWeight>> vec = hashmapToVector(spt),
+                                                        result;
+            std::sort(vec.begin(), vec.end(), [](const auto &pA, const auto &pB) {
+                return pA.second < pB.second;
+            });
+
+            for (const auto &elem : vec)
+                if (elem.second != 0 && elem.second != INF)
+                    result.push_back(elem);
+
+            if (limit < result.size())
+                result.resize(limit);
+
+            return result;
         }
 
-        std::map<Node<T>, NodeWeight> Dijkstra(Node<T> source) {
+        std::unordered_map<Node<T>, NodeWeight, NodeHash<T>> Dijkstra(
+            Node<T> source, std::string flag = "weight") {
             const size_t numNodes = m_Nodes.size();
-            const NodeWeight INF = (NodeWeight)(-1);
-            //std::unordered_map<Node<T>, NodeWeight> distance; // distanceFromSource
-            std::map<Node<T>, NodeWeight> distance;
+            std::unordered_map<Node<T>, NodeWeight, NodeHash<T>> distances, numEdges;
+            std::unordered_set<Node<T>, NodeHash<T>> spt;
 
             m_Visited.clear();
             init_indices();
 
             for (Node<T> node : m_Nodes) {
-                distance[node] = INF;
+                distances[node] = INF;
+                numEdges[node] = INF;
                 m_Visited[node] = false;
             }
 
-            distance[source] = (NodeWeight)0;
+            distances[source] = 0;
+            numEdges[source] = 0;
 
-            for (int i = 0; i < m_Indices.size(); i++) {
-                Node<T> curr = m_Indices[i].first;
+            while (spt.size() < m_Nodes.size()) {
+                Node<T> current = findMinNode(spt, distances);
+                spt.emplace(current);
+                m_Visited[current] = true;
 
-                if (curr != source && m_Visited[curr] == false) {
-                    std::pair<Node<T>, NodeWeight> nearest = closest(curr);
-                    m_Visited[curr] = true;
+                NodeList adjacent = m_Connectivity[current];
 
-                    for (int idx = 0; idx < numNodes; idx++) {
-                        Node<T> v = m_Indices[idx].first;
-                        if (m_Visited[v] == false && m_AdjMatrix[i][idx] > 0 &&
-                            distance[curr] != INF &&
-                            distance[curr] + m_AdjMatrix[i][idx] < distance[v])
-                            distance[v] = distance[curr] + m_AdjMatrix[i][idx];
+                for (std::pair<Node<T>, NodeWeight> w : adjacent) {
+                    if (m_Visited[w.first] == false) {
+                        m_Visited[w.first] = true;
+                        if (distances[current] + w.second < distances[w.first]) {
+                            distances[w.first] = distances[current] + w.second;
+                            numEdges[w.first] = numEdges[current] + 1;
+                        }
                     }
                 }
             }
 
-            return distance;
+            std::unordered_map<Node<T>, NodeWeight, NodeHash<T>> edges;
+
+            for (auto &[k, v] : numEdges)
+                if (v != INF)
+                    edges[k] = v;
+
+            if (flag == "weight")
+                return distances;
+            else
+                return edges;
         }
-        
 
-        private:
-            std::pair<Node<T>, NodeWeight> closest(Node<T> source) {
-                std::list<std::pair<Node<T>, NodeWeight>> distances =
-                    m_Connectivity[source];
+        void printEdgeDistances() {
+            init_edge_distances();
 
-                std::pair<Node<T>, NodeWeight> nearest = distances.front();
+            for (auto [node, list] : m_EdgeDistances) {
+                std::cout << "[" << node << "]" << std::endl;
 
-                for (const std::pair<Node<T>, NodeWeight> &elem : distances)
-                    if (elem.second < nearest.second)
-                        nearest = elem;
+                for (const auto &elem : list)
+                    if (elem.second > 0)
+                        std::cout << elem.first << " = " << elem.second << std::endl;
 
-                return nearest;
+                std::cout << std::endl;
+            }
+        }
+
+    private:
+        void init_edge_distances() {
+            if (m_edges_initialized == true)
+                return;
+
+            for (const Node<T> &node : m_Nodes) {
+                std::unordered_map<Node<T>, NodeWeight, NodeHash<T>> distanceTo =
+                    Dijkstra(node, "edges");
+                m_EdgeDistances[node];
+
+                for (auto [k, v] : distanceTo)
+                    m_EdgeDistances[node].push_back({k, v});
             }
 
-            std::vector<NodeWeight> tokenizeWeights(const std::string &feed,
-                                                    char delim = ' ') {
-                std::stringstream ss(feed);
-                std::string token;
+            m_edges_initialized = true;
+        }
 
-                std::vector<NodeWeight> result;
+        // Returns an unsorted vector
+        std::vector<std::pair<Node<T>, NodeWeight>> hashmapToVector(
+            std::unordered_map<Node<T>, NodeWeight, NodeHash<T>> dict) {
+            std::vector<std::pair<Node<T>, NodeWeight>> result;
 
-                while (std::getline(ss, token, delim))
-                    result.push_back(std::stod(token));
+            for (const auto &elem : dict)
+                result.push_back(elem);
 
-                return result;
+            return result;
+        }
+
+        Node<T> findMinNode(
+            const std::unordered_set<Node<T>, NodeHash<T>> &spt,
+            const std::unordered_map<Node<T>, NodeWeight, NodeHash<T>> &distances) {
+
+            Node<T> minNode;
+            NodeWeight minValue = INF + 1; // :DDDD
+
+            for (const auto &[node, value] : distances) {
+                if (spt.contains(node) == false && value <= minValue) {
+                    minNode = node;
+                    minValue = value;
+                }
             }
 
-            std::unordered_set<Node<T>, NodeHash<T>> neighborsOf(Node<T> target) {
-                std::unordered_set<Node<T>, NodeHash<T>> neighbors;
-                std::list<std::pair<Node<T>, NodeWeight>> connectedNodes =
-                    m_Connectivity[target];
+            return minNode;
+        }
 
-                for (auto [node, wt] : connectedNodes)
-                    neighbors.emplace(node);
+        std::pair<Node<T>, NodeWeight> closest(Node<T> source) {
+            NodeList distances = m_Connectivity[source];
 
-                        return std::unordered_set<Node<T>, NodeHash<T>>(neighbors);
-            }
+            std::pair<Node<T>, NodeWeight> nearest = distances.front();
 
-            void init_indices() {
-                m_Indices.clear();
-                int32_t i = 0;
+            for (const std::pair<Node<T>, NodeWeight> &elem : distances)
+                if (elem.second < nearest.second)
+                    nearest = elem;
 
-                for (Node<T> node : m_Nodes)
-                    m_Indices.push_back(std::make_pair(node, i++));
-            }
-            /* --- */
+            return nearest;
+        }
+
+        std::vector<NodeWeight> tokenizeWeights(const std::string &feed,
+                                                char delim = ' ') {
+            std::stringstream ss(feed);
+            std::string token;
+
+            std::vector<NodeWeight> result;
+
+            while (std::getline(ss, token, delim))
+                result.push_back(std::stod(token));
+
+            return result;
+        }
+
+        std::unordered_set<Node<T>, NodeHash<T>> neighborsOf(Node<T> target) {
+            std::unordered_set<Node<T>, NodeHash<T>> neighbors;
+            NodeList connectedNodes = m_Connectivity[target];
+
+            for (auto [node, wt] : connectedNodes)
+                neighbors.emplace(node);
+
+            return std::unordered_set<Node<T>, NodeHash<T>>(neighbors);
+        }
+
+        void init_indices() {
+            m_Indices.clear();
+            int32_t i = 0;
+
+            for (Node<T> node : m_Nodes)
+                m_Indices.push_back(std::make_pair(node, i++));
+        }
+        /* --- */
 };

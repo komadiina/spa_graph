@@ -51,6 +51,15 @@ template <typename T> class Node {
         }
 };
 
+// namespace std {
+// template <typename T> struct hash<Node<T>> {
+//         size_t operator()(const Node<T> &obj) const {
+//             return (std::hash<size_t>()(sizeof(obj.GetData())) ^
+//                     std::hash<size_t>()(sizeof(obj.GetData())));
+//         }
+// };
+// } // namespace std
+
 template <typename T> class NodeHash {
     public:
         size_t operator()(const Node<T> &obj) const {

@@ -40,9 +40,28 @@ int main(int argC, char **argV) {
     Graph<DataType> graph;
     graph.LoadFromFile();
 
-    std::map<Node<DataType>, NodeWeight> distances = graph.Dijkstra(Node<std::string>("skola"));
-    for (auto [key, value] : distances)
-        std::cout << key << ": " << value << std::endl; 
+    // graph.template DFS<void>(Node<DataType>("skola"), [](Node<DataType> node, int16_t
+    // i) {
+    //     std::cout << "\t" << i << ": " << node << std::endl;
+    // });
+
+    // auto vec = graph.GetClosest(Node<std::string>("skola"), 10);
+    // for (const auto &elem : vec)
+    //     std::cout << elem.first << " --> " << (elem.second == INF ? -1 : elem.second)
+    //               << std::endl;
+
+    //for (const auto &node : graph.GetNodes()) {
+    //    std::cout << "[" << node << "]" << std::endl;
+
+    //    auto result = graph.GetClosest(node);
+    //    int i = 1;
+    //    for (const auto &[first, second] : result)
+    //        std::cout << i++ << ". " << first << " --> " << second << std::endl;
+
+    //    std::cout << std::endl;
+    //}
+
+    graph.printEdgeDistances();
 
     std::cout << "Done." << std::endl;
     return EXIT_SUCCESS;
