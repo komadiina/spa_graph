@@ -6,6 +6,8 @@
 #include <variant>
 #include <vector>
 
+template <typename T> T NO_DATA = T{};
+
 template <typename T> class Node {
     private:
         T m_Data;

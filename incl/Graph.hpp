@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <climits>
+#include <cmath>
 #include <fstream>
 #include <initializer_list>
 #include <limits>
@@ -35,13 +36,24 @@ template <typename T> class Graph {
         std::vector<std::string> m_NodeNames;
         std::unordered_map<Node<T>, bool, NodeHash<T>> m_Visited;
         std::vector<std::pair<Node<T>, int32_t>> m_Indices;
+
+        // NodeSet is always sorted ascendingly
         std::unordered_map<Node<T>, NodeSet, NodeHash<T>> m_EdgeDistances;
         std::unordered_map<Node<T>, NodeSet, NodeHash<T>> m_WeightDistances;
 
         bool m_edges_initialized = false;
         bool m_weights_initialized = false;
+        std::string m_Filename;
+        std::string m_OutDir = ".\\out\\";
 
     public:
+        void InitDistances() { // using Dijkstra algorithm
+            for (const auto &node : m_Nodes)
+                auto _ = Dijkstra(node);
+
+            m_edges_initialized = m_weights_initialized = true;
+        }
+
         Graph() {}
 
         // initialize a graph with specified nodes
@@ -211,7 +223,7 @@ template <typename T> class Graph {
             }
         }
 
-        void LoadFromFile(const std::string &filename = ".\\src\\graf2.txt") {
+        void LoadFromFile(const std::string &filename = "graf2.txt") {
             // FILE FORMATTED AS:
             // node_count
             // node_names
@@ -219,6 +231,7 @@ template <typename T> class Graph {
                 [adjacency matrix]
             */
             m_edges_initialized = false;
+            m_Filename = filename;
 
             uint32_t nodeCount;
             std::vector<std::vector<NodeWeight>> adjMatrix;
@@ -284,9 +297,6 @@ template <typename T> class Graph {
                 return;
             }
 
-            std::cout << "DFS traversal starting from node [" << start
-                      << "]:" << std::endl;
-
             std::stack<Node<T>> st({start});
             uint16_t iteration = 1;
 
@@ -312,8 +322,8 @@ template <typename T> class Graph {
             }
         }
 
-        std::vector<std::pair<Node<T>, NodeWeight>> GetClosest(Node<T> target,
-                                                               int16_t limit = 5) {
+        std::vector<std::pair<Node<T>, NodeWeight>> GetClosest(
+            Node<T> target, int16_t limit = 5, std::string criteria = "weights") {
             std::unordered_map<Node<T>, NodeWeight, NodeHash<T>> spt = Dijkstra(target);
 
             std::vector<std::pair<Node<T>, NodeWeight>> vec = hashmapToVector(spt),
@@ -378,40 +388,150 @@ template <typename T> class Graph {
                 if (v != INF)
                     weights[k] = v;
 
+            auto edgesSet = flatten(edges);
+            auto weightsSet = flatten(weights);
+            m_EdgeDistances[source] = edgesSet;
+            m_WeightDistances[source] = weightsSet;
+
             if (flag == "weights")
                 return weights;
             else
                 return edges;
         }
 
-        void printEdgeDistances() {
-            init_edge_distances();
+        void printEdgeDistances(T data = NO_DATA<T>) {
+            if (data != NO_DATA<T>) { // only print for the specified node
+                Node<T> target(data);
 
-            for (auto [node, list] : m_EdgeDistances) {
-                std::cout << "[" << node << "]" << std::endl;
-
-                for (const auto &elem : list)
+                std::cout << "[" << target << "]" << std::endl;
+                for (auto elem : m_EdgeDistances.at(data)) {
                     if (elem.second > 0)
                         std::cout << elem.first << " = " << elem.second << std::endl;
+                }
 
                 std::cout << std::endl;
+            } else { // print for all nodes (permutated)
+                for (auto [node, list] : m_EdgeDistances) {
+                    std::cout << "[" << node << "]" << std::endl;
+
+                    for (const auto &elem : list)
+                        if (elem.second > 0)
+                            std::cout << elem.first << " = " << elem.second << std::endl;
+
+                    std::cout << std::endl;
+                }
             }
         }
 
-        void printWeightDistances() {
-            init_weights();
-            for (auto [node, list] : m_WeightDistances) {
-                std::cout << "[" << node << "]" << std::endl;
+        void printWeightDistances(T data = NO_DATA<T>) {
+            if (data != NO_DATA<T>) { // only print for the specified node
+                Node<T> target(data);
 
-                for (const auto &elem : list)
+                std::cout << "[" << target << "]" << std::endl;
+                for (auto elem : m_WeightDistances.at(data)) {
+
                     if (elem.second > 0)
                         std::cout << elem.first << " = " << elem.second << std::endl;
-
+                }
                 std::cout << std::endl;
+            } else { // print for all nodes (permutated)
+                for (auto [node, list] : m_WeightDistances) {
+                    std::cout << "[" << node << "]" << std::endl;
+
+                    for (const auto &elem : list)
+                        if (elem.second > 0)
+                            std::cout << elem.first << " = " << elem.second << std::endl;
+
+                    std::cout << std::endl;
+                }
+            }
+        }
+
+        void DumpData() {
+            int32_t limit = 5;
+            std::string loc = m_OutDir + "rezultat_" + m_Filename;
+            std::vector<std::string> outputnodes;
+            std::ofstream file(loc, std::ios::out | std::ios::trunc);
+            file.seekp(std::ios::beg);
+
+            // output format: rijecN [a1:wt1, a2:wt2, ... , aX:wtX]
+
+            std::string line;
+            for (Node<T> node : m_Nodes) {
+                int count = limit;
+                line.clear();
+                outputnodes.clear();
+                line = node.GetData() + " [";
+                NodeSet connected = m_WeightDistances.at(node);
+
+                for (std::pair<Node<T>, NodeWeight> elem : connected) {
+                    std::string outputWeight;
+                    auto found = std::find_if(connected.begin(),
+                                              connected.end(),
+                                              [&connected, &elem](const auto &a) {
+                                                  return a.second == elem.second;
+                                              });
+                    if (found->first == node)
+                        continue; // skip processing of node itself
+
+                    // duplicate weight detected
+                    // poredi edgeDist od elem.first i found->first
+                    // to se nalazi u m_edgedist.at(node) NodeSet
+                    // trebam naci elem.first i found->first u m_edgedist.at(node)
+                    NodeWeight foundEdgeWt, elemEdgeWt, endWt;
+                    if (found != connected.end()) {
+
+                        for (auto [n, eDist] : m_EdgeDistances.at(node)) {
+                            if (n == found->first)
+                                foundEdgeWt = eDist;
+                            if (n == elem.first)
+                                elemEdgeWt = eDist;
+                        }
+
+                        if (elemEdgeWt <= foundEdgeWt)
+                            endWt = found->second;
+                        else
+                            endWt = elem.second;
+                    }
+
+                    endWt = round_to(endWt, 0.01);
+                    outputWeight = std::to_string(endWt);
+                    std::string result;
+                    int i = 0;
+                    while (i < 4)
+                        result.push_back(outputWeight[i++]);
+
+                    outputnodes.push_back(elem.first.GetData() + ":" + result + " ");
+
+                    if (outputnodes.size() == limit)
+                        break;
+                }
+
+                for (const std::string &elem : outputnodes)
+                    line += elem;
+
+                if (outputnodes.size() > 0)
+                    line.pop_back();
+
+                line += "]";
+                file << line << std::endl;
             }
         }
 
     private:
+        NodeWeight round_to(NodeWeight val, double precision = 0.01) {
+            return std::round(val / precision) * precision;
+        }
+
+        NodeSet flatten(std::unordered_map<Node<T>, NodeWeight, NodeHash<T>> dict) {
+            NodeSet result;
+
+            for (auto &[k, v] : dict)
+                result.emplace(std::make_pair(k, v));
+
+            return result;
+        }
+
         void init_weights() {
             if (m_weights_initialized == true)
                 return;

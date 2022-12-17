@@ -1,7 +1,9 @@
 #include <fstream>
 #include <iostream>
 
-// g++ main.cpp -o main -g -Iincl/ -std=c++20
+// build main
+// -- or --
+// g++ main.cpp -o main -g -Iincl/ -std=c++23
 
 #include "./incl/Graph.hpp"
 #include "./incl/Node.hpp"
@@ -13,50 +15,54 @@ int main(int argC, char **argV) {
     using DataType = std::string;
     using RelationType = Relation<Node<DataType>, NodeWeight>;
 
-    // int_fast32_t i = 1;
-
-    // Node<DataType> srbac("Srbac"s, i++);
-    // Node<DataType> banja_luka("Banja Luka"s, i++);
-    // Node<DataType> beograd("Beograd"s, i++);
-    // Node<DataType> bugojno("Bugojno"s, i++);
-    // Node<DataType> novi_sad("Novi Sad"s, i++);
-
-    // Graph<DataType> graph({srbac, banja_luka, beograd, bugojno, novi_sad});
-
-    // std::cout << "Graph nodes: " << graph << std::endl;
-
-    // std::vector<RelationType> relations({RelationType(srbac, banja_luka, 49.5),
-    //                                      RelationType(banja_luka, beograd, 275.1),
-    //                                      RelationType(bugojno, novi_sad, 102),
-    //                                      RelationType(banja_luka, novi_sad, 180.2)});
-
-    // for (auto relation : relations)
-    //     graph.TryConnect({relation});
-    // graph.PrintConnections();
-
-    // graph.TryDisconnect(srbac, banja_luka);
-    // graph.PrintConnections();
+    std::string filename;
+    std::cout << "Naziv tekstualnog fajla: ";
+    std::getline(std::cin, filename, '\n');
 
     Graph<DataType> graph;
-    graph.LoadFromFile();
-    std::cout << "Graph contents:\n" << graph << std::endl;
+    graph.LoadFromFile(filename);
+    graph.InitDistances();
+    std::cout << graph << std::endl;
 
-    std::cout << "Adjacency matrix:\n" << graph.GetMatrix() << std::endl;
+    std::string sel = "1";
+    do {
+        std::cout << "\t[1] - Traverse using DFS\n\t[2] - Print edge-wise "
+                     "connections\n\t[3] - Print weight-wise connections\n\t[4] - "
+                     "Save graph data and quit\n> ";
 
-    std::cout << "Select a node target for DFS traversal: ";
-    DataType sel;
-    std::cin >> sel;
-    std::cin.ignore(1); // newline
-    graph.template DFS<void>(Node<DataType>(sel), [](Node<DataType> node, int16_t i) {
-        std::cout << "\t" << i << ": " << node << std::endl;
-    });
+        std::getline(std::cin, sel, '\n');
 
-    std::cout << "Select a node target for similarity calculation: ";
-    std::cin >> sel;
-    std::cin.ignore(1); // newline
-    
+        if (sel == "1") {
+            std::cout << "Enter node name: ";
+            DataType name;
+            std::getline(std::cin, name, '\n');
 
+            graph.template DFS<void>(Node<DataType>(name),
+                                     [](Node<DataType> node, int16_t i) {
+                                         std::cout << i++ << ". " << node << std::endl;
+                                     });
+        } else if (sel == "2") {
+            std::cout << "Enter node name (leave blank to print all): ";
+            DataType name;
+            std::getline(std::cin, name, '\n');
+            graph.printEdgeDistances(name);
+        } else if (sel == "3") {
+            std::cout << "Enter node name (leave blank to print all): ";
+            DataType name;
+            std::getline(std::cin, name, '\n');
+            graph.printWeightDistances(name);
+        } else if (sel == "4") {
+            graph.DumpData();
+            std::cout << "Done." << std::endl;
+            return EXIT_SUCCESS;
+        } else {
+            std::cout << "Invalid option." << std::endl;
+        }
+    } while (sel == "1" || sel == "2" || sel == "3" || sel == "4");
 
+    graph.DumpData();
+
+    std::cout << "Done." << std::endl;
     std::cout << "Done." << std::endl;
     return EXIT_SUCCESS;
 }
