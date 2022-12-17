@@ -23,21 +23,23 @@
 
 template <typename T> class Graph {
     private:
-        using NodeList = std::list<std::pair<Node<T>, NodeWeight>>;
+        using NodeSet = std::multiset<std::pair<Node<T>, NodeWeight>>;
         using NodeWeight = double;
 
     private:
         std::unordered_set<Node<T>, NodeHash<T>> m_Nodes;
-        std::unordered_map<Node<T>, NodeList, NodeHash<T>> m_Connectivity;
+        std::unordered_map<Node<T>, NodeSet, NodeHash<T>> m_Connectivity;
         NodeWeight m_TotalWeight = 0.0;
 
         Matrix<NodeWeight> m_AdjMatrix;
         std::vector<std::string> m_NodeNames;
         std::unordered_map<Node<T>, bool, NodeHash<T>> m_Visited;
         std::vector<std::pair<Node<T>, int32_t>> m_Indices;
-        std::unordered_map<Node<T>, NodeList, NodeHash<T>> m_EdgeDistances;
+        std::unordered_map<Node<T>, NodeSet, NodeHash<T>> m_EdgeDistances;
+        std::unordered_map<Node<T>, NodeSet, NodeHash<T>> m_WeightDistances;
 
         bool m_edges_initialized = false;
+        bool m_weights_initialized = false;
 
     public:
         Graph() {}
@@ -81,7 +83,7 @@ template <typename T> class Graph {
 
                     m_Nodes.emplace(src);
                     m_Nodes.emplace(dest);
-                    m_Connectivity[src].push_back({dest, wt});
+                    m_Connectivity[src].insert({dest, wt});
 
                     m_edges_initialized = false;
 
@@ -102,7 +104,7 @@ template <typename T> class Graph {
                 m_Nodes.emplace(from);
                 m_Nodes.emplace(to);
                 m_Connectivity[from]; // ensures insertion
-                m_Connectivity.at(from).push_back(std::make_pair(to, wt));
+                m_Connectivity.at(from).insert(std::make_pair(to, wt));
 
                 m_edges_initialized = false;
             }
@@ -116,7 +118,7 @@ template <typename T> class Graph {
             m_Nodes.emplace(from);
             m_Nodes.emplace(to);
             m_Connectivity[from]; // ensures insertion
-            m_Connectivity.at(from).push_back(std::make_pair(to, wt));
+            m_Connectivity.at(from).insert(std::make_pair(to, wt));
 
             m_edges_initialized = false;
         }
@@ -331,7 +333,7 @@ template <typename T> class Graph {
         }
 
         std::unordered_map<Node<T>, NodeWeight, NodeHash<T>> Dijkstra(
-            Node<T> source, std::string flag = "weight") {
+            Node<T> source, std::string flag = "weights") {
             const size_t numNodes = m_Nodes.size();
             std::unordered_map<Node<T>, NodeWeight, NodeHash<T>> distances, numEdges;
             std::unordered_set<Node<T>, NodeHash<T>> spt;
@@ -353,7 +355,7 @@ template <typename T> class Graph {
                 spt.emplace(current);
                 m_Visited[current] = true;
 
-                NodeList adjacent = m_Connectivity[current];
+                NodeSet adjacent = m_Connectivity[current];
 
                 for (std::pair<Node<T>, NodeWeight> w : adjacent) {
                     if (m_Visited[w.first] == false) {
@@ -366,14 +368,18 @@ template <typename T> class Graph {
                 }
             }
 
-            std::unordered_map<Node<T>, NodeWeight, NodeHash<T>> edges;
+            std::unordered_map<Node<T>, NodeWeight, NodeHash<T>> edges, weights;
 
             for (auto &[k, v] : numEdges)
                 if (v != INF)
                     edges[k] = v;
 
-            if (flag == "weight")
-                return distances;
+            for (auto &[k, v] : distances)
+                if (v != INF)
+                    weights[k] = v;
+
+            if (flag == "weights")
+                return weights;
             else
                 return edges;
         }
@@ -392,7 +398,35 @@ template <typename T> class Graph {
             }
         }
 
+        void printWeightDistances() {
+            init_weights();
+            for (auto [node, list] : m_WeightDistances) {
+                std::cout << "[" << node << "]" << std::endl;
+
+                for (const auto &elem : list)
+                    if (elem.second > 0)
+                        std::cout << elem.first << " = " << elem.second << std::endl;
+
+                std::cout << std::endl;
+            }
+        }
+
     private:
+        void init_weights() {
+            if (m_weights_initialized == true)
+                return;
+            for (const Node<T> &node : m_Nodes) {
+                std::unordered_map<Node<T>, NodeWeight, NodeHash<T>> distanceTo =
+                    Dijkstra(node, "weights");
+                m_WeightDistances[node];
+
+                for (auto [k, v] : distanceTo)
+                    m_WeightDistances[node].insert({k, v});
+            }
+
+            m_weights_initialized = true;
+        }
+
         void init_edge_distances() {
             if (m_edges_initialized == true)
                 return;
@@ -403,7 +437,7 @@ template <typename T> class Graph {
                 m_EdgeDistances[node];
 
                 for (auto [k, v] : distanceTo)
-                    m_EdgeDistances[node].push_back({k, v});
+                    m_EdgeDistances[node].insert({k, v});
             }
 
             m_edges_initialized = true;
@@ -438,7 +472,7 @@ template <typename T> class Graph {
         }
 
         std::pair<Node<T>, NodeWeight> closest(Node<T> source) {
-            NodeList distances = m_Connectivity[source];
+            NodeSet distances = m_Connectivity[source];
 
             std::pair<Node<T>, NodeWeight> nearest = distances.front();
 
@@ -464,7 +498,7 @@ template <typename T> class Graph {
 
         std::unordered_set<Node<T>, NodeHash<T>> neighborsOf(Node<T> target) {
             std::unordered_set<Node<T>, NodeHash<T>> neighbors;
-            NodeList connectedNodes = m_Connectivity[target];
+            NodeSet connectedNodes = m_Connectivity[target];
 
             for (auto [node, wt] : connectedNodes)
                 neighbors.emplace(node);

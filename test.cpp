@@ -40,28 +40,26 @@ int main(int argC, char **argV) {
     Graph<DataType> graph;
     graph.LoadFromFile();
 
-    // graph.template DFS<void>(Node<DataType>("skola"), [](Node<DataType> node, int16_t
-    // i) {
-    //     std::cout << "\t" << i << ": " << node << std::endl;
-    // });
+    std::string sel;
+    std::cout << "enter a node for analysis: ";
+    std::cin >> sel;
+    std::cin.ignore(1);
 
-    // auto vec = graph.GetClosest(Node<std::string>("skola"), 10);
-    // for (const auto &elem : vec)
-    //     std::cout << elem.first << " --> " << (elem.second == INF ? -1 : elem.second)
-    //               << std::endl;
+    graph.template DFS<void>(Node<DataType>(sel), [](Node<DataType> node, int16_t i) {
+        std::cout << "\t" << i << ": " << node << std::endl;
+    });
 
-    //for (const auto &node : graph.GetNodes()) {
-    //    std::cout << "[" << node << "]" << std::endl;
+    auto vec = graph.GetClosest(Node<std::string>(sel), 10);
+    std::cout << "Nodes closest, weight-wise: \n";
+    for (const auto &elem : vec)
+        std::cout << elem.first << " --> " << (elem.second == INF ? -1 : elem.second)
+                  << std::endl;
 
-    //    auto result = graph.GetClosest(node);
-    //    int i = 1;
-    //    for (const auto &[first, second] : result)
-    //        std::cout << i++ << ". " << first << " --> " << second << std::endl;
-
-    //    std::cout << std::endl;
-    //}
-
+    std::cout << std::endl << "Distance from all nodes to eachother, edge-wise: \n";
     graph.printEdgeDistances();
+
+    std::cout << std::endl << "Distance from all nodes to eachother, weight-wise: \n";
+    graph.printWeightDistances();
 
     std::cout << "Done." << std::endl;
     return EXIT_SUCCESS;
